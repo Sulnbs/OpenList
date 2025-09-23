@@ -1,6 +1,8 @@
 module github.com/OpenListTeam/OpenList/v4
 
-go 1.23.4
+go 1.24
+
+toolchain go1.24.7
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.1
@@ -37,6 +39,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/hashicorp/go-plugin v1.7.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/ipfs/go-ipfs-api v0.7.0
@@ -87,11 +90,15 @@ require (
 	github.com/charmbracelet/x/cellbuf v0.0.13-0.20250311204145-2c3ea96c31dd // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
+	github.com/fatih/color v1.13.0 // indirect
+	github.com/hashicorp/go-hclog v1.6.3 // indirect
+	github.com/hashicorp/yamux v0.1.2 // indirect
 	github.com/lanrat/extsort v1.0.2 // indirect
 	github.com/mikelolasagasti/xz v1.0.1 // indirect
 	github.com/minio/minlz v1.0.0 // indirect
 	github.com/minio/xxml v0.0.3 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/oklog/run v1.1.0 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
@@ -256,7 +263,7 @@ require (
 	go.etcd.io/bbolt v1.4.0 // indirect
 	golang.org/x/arch v0.18.0 // indirect
 	golang.org/x/sync v0.16.0
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.34.0
 	golang.org/x/term v0.33.0 // indirect
 	golang.org/x/text v0.27.0
 	golang.org/x/tools v0.34.0 // indirect

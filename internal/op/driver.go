@@ -3,6 +3,7 @@ package op
 import (
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/OpenListTeam/OpenList/v4/internal/conf"
 
@@ -14,8 +15,12 @@ type DriverConstructor func() driver.Driver
 
 var driverMap = map[string]DriverConstructor{}
 var driverInfoMap = map[string]driver.Info{}
+var driverMutex sync.RWMutex
 
 func RegisterDriver(driver DriverConstructor) {
+	driverMutex.Lock()
+	defer driverMutex.Unlock()
+	
 	// log.Infof("register driver: [%s]", config.Name)
 	tempDriver := driver()
 	tempConfig := tempDriver.Config()
@@ -23,7 +28,28 @@ func RegisterDriver(driver DriverConstructor) {
 	driverMap[tempConfig.Name] = driver
 }
 
+// UnregisterDriver removes a driver from registry
+func UnregisterDriver(name string) {
+	driverMutex.Lock()
+	defer driverMutex.Unlock()
+	
+	delete(driverMap, name)
+	delete(driverInfoMap, name)
+}
+
+// IsDriverRegistered checks if a driver is already registered
+func IsDriverRegistered(name string) bool {
+	driverMutex.RLock()
+	defer driverMutex.RUnlock()
+	
+	_, exists := driverMap[name]
+	return exists
+}
+
 func GetDriver(name string) (DriverConstructor, error) {
+	driverMutex.RLock()
+	defer driverMutex.RUnlock()
+	
 	n, ok := driverMap[name]
 	if !ok {
 		return nil, errors.Errorf("no driver named: %s", name)
@@ -32,6 +58,9 @@ func GetDriver(name string) (DriverConstructor, error) {
 }
 
 func GetDriverNames() []string {
+	driverMutex.RLock()
+	defer driverMutex.RUnlock()
+	
 	var driverNames []string
 	for k := range driverInfoMap {
 		driverNames = append(driverNames, k)
@@ -40,17 +69,37 @@ func GetDriverNames() []string {
 }
 
 func GetDriverInfoMap() map[string]driver.Info {
-	return driverInfoMap
+	driverMutex.RLock()
+	defer driverMutex.RUnlock()
+	
+	// Return a copy to prevent race conditions
+	result := make(map[string]driver.Info)
+	for k, v := range driverInfoMap {
+		result[k] = v
+	}
+	return result
 }
 
 func registerDriverItems(config driver.Config, addition driver.Additional) {
+	defer func() {
+		driverMutex.Unlock()
+	}()
+	driverMutex.Lock()
 	// log.Debugf("addition of %s: %+v", config.Name, addition)
 	tAddition := reflect.TypeOf(addition)
 	for tAddition.Kind() == reflect.Pointer {
 		tAddition = tAddition.Elem()
 	}
 	mainItems := getMainItems(config)
-	additionalItems := getAdditionalItems(tAddition, config.DefaultRoot)
+	
+	var additionalItems []driver.Item
+	// Handle map type for plugin drivers
+	if tAddition.Kind() == reflect.Map {
+		additionalItems = []driver.Item{} // Skip additional items for plugin drivers
+	} else {
+		additionalItems = getAdditionalItems(tAddition, config.DefaultRoot)
+	}
+	
 	driverInfoMap[config.Name] = driver.Info{
 		Common:     mainItems,
 		Additional: additionalItems,

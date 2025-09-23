@@ -1,0 +1,75 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"os/exec"
+	"time"
+
+	"github.com/hashicorp/go-plugin"
+	pluginLib "github.com/OpenListTeam/OpenList/v4/internal/plugin"
+)
+
+func main() {
+	fmt.Println("开始测试插件连接...")
+
+	// 直接测试插件连接
+	pluginPath := "../../openlist-storage-driver-plugins/plugins/open.exe"
+	
+	// 创建插件客户端
+	client := plugin.NewClient(&plugin.ClientConfig{
+		HandshakeConfig: plugin.HandshakeConfig{
+			ProtocolVersion:  1,
+			MagicCookieKey:   "OPENLIST_PLUGIN",
+			MagicCookieValue: "driver-plugin",
+		},
+		Plugins: map[string]plugin.Plugin{
+			"driver-plugin": &pluginLib.DriverPluginImpl{},
+		},
+		Cmd:     exec.Command(pluginPath),
+		Managed: true, // Enable managed mode for background execution
+	})
+
+	// 确保插件在程序结束时被清理
+	defer client.Kill()
+
+	fmt.Println("连接到插件...")
+	// 连接到插件
+	rpcClient, err := client.Client()
+	if err != nil {
+		log.Fatalf("连接到插件失败: %v", err)
+	}
+
+	fmt.Println("获取插件接口...")
+	// 获取插件接口
+	raw, err := rpcClient.Dispense("driver-plugin")
+	if err != nil {
+		log.Fatalf("获取插件接口失败: %v", err)
+	}
+
+	driverPlugin := raw.(pluginLib.DriverPluginClient)
+	
+	fmt.Println("调用 GetInfo...")
+	// 测试 GetInfo 方法
+	info, err := driverPlugin.GetInfo()
+	if err != nil {
+		log.Printf("GetInfo 调用失败: %v", err)
+	} else {
+		fmt.Printf("插件信息: %+v\n", info)
+	}
+
+	fmt.Println("调用 GetDrivers...")
+	// 测试 GetDrivers 方法
+	drivers, err := driverPlugin.GetDrivers()
+	if err != nil {
+		log.Printf("GetDrivers 调用失败: %v", err)
+	} else {
+		fmt.Printf("驱动程序: %v\n", drivers)
+		fmt.Printf("驱动程序数量: %d\n", len(drivers))
+	}
+
+	fmt.Println("等待 2 秒...")
+	time.Sleep(2 * time.Second)
+	
+	fmt.Println("测试完成，关闭插件...")
+}
